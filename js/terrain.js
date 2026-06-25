@@ -179,7 +179,7 @@ export function createTerrain(scene) {
     });
     const crater = new THREE.Mesh(craterGeo, craterMat);
     crater.rotation.x = -Math.PI / 2;
-    crater.position.y = 20.3; 
+    crater.position.y = 23; 
     scene.add(crater);
 
     // ==========================================
@@ -194,7 +194,7 @@ export function createTerrain(scene) {
     });
     const craterGlow = new THREE.Mesh(glowGeo, glowMat);
     craterGlow.rotation.x = -Math.PI / 2;
-    craterGlow.position.y = 20.6; 
+    craterGlow.position.y = 23.3; 
     scene.add(craterGlow);
 
     return { island, pos };
