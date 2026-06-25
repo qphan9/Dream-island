@@ -36,7 +36,7 @@ controls.maxPolarAngle = Math.PI * 0.47;
 
 const loader = new GLTFLoader();
 
-const { sunLight, sunMesh, sunMat } = createLighting(scene);
+const { sky, sunLight, ambientLight, toggleTime, update: updateLighting } = createLighting(scene);
 const water = createWater(scene, sunLight);
 const { island, pos } = createTerrain(scene);
 spawnEcosystem(scene, pos);
@@ -44,7 +44,7 @@ spawnEcosystem(scene, pos);
 const { woodTexture, updateBoat } = createProps(scene, loader);
 
 const { cloudGroup, particles, lavaParticles, lavaSpeeds, lavaCount } = createVFX(scene);
-initGUI(water, sunLight, sunMat, null);
+initGUI(water, toggleTime);
 
 const cloudBoxGeo = new THREE.BoxGeometry(300, 200, 300);
 const cloudBoxMat = new THREE.MeshBasicMaterial({ side: THREE.BackSide });
@@ -69,7 +69,7 @@ function animate() {
     if (typeof updateBoat === 'function') {
         updateBoat(time);
     }
-    
+    updateLighting();
     updateVFX(cloudGroup, particles, lavaParticles, lavaSpeeds, lavaCount, time);
 
     controls.update();

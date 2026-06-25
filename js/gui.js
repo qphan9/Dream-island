@@ -1,34 +1,35 @@
 import GUI from 'https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm';
 
-export function initGUI(water, sunLight, sunMat, hull) {
+// Thay đổi tham số truyền vào: Nhận thêm hàm toggleTime từ module lighting
+export function initGUI(water, toggleTime) {
     const gui = new GUI({ title: 'God Mode - Điều Khiển Thế Giới' });
 
     const params = {
-        waterLevel: 5,           // Mực nước mặc định
-        sunIntensity: 1.4,       // Độ sáng mặc định
-        sunColor: '#fffaed',     // Màu nắng
-        waterColor: '#006b8f'    // Màu nước
+        waterLevel: 5,           
+        waterColor: '#006b8f',    
+        toggleDayNight: () => {
+            if (toggleTime) toggleTime();
+        }
     };
 
-    // Thanh trượt mực nước: Lên sẽ làm lụt đảo, xuống sẽ khô cạn
-    gui.add(params, 'waterLevel', 0, 20, 0.1).name('Độ cao mực nước').onChange((value) => {
-        water.position.y = value;
-        hull.position.y = value; // Thuyền nổi theo mặt nước
+    // ==========================================
+    // 1. NHÓM ĐẠI DƯƠNG
+    // ==========================================
+    const waterFolder = gui.addFolder('Đại Dương');
+    
+    waterFolder.add(params, 'waterLevel', 0, 20, 0.1).name('Độ cao mực nước').onChange((value) => {
+        if (water) water.position.y = value;
     });
 
-    // Thanh trượt độ sáng mặt trời
-    gui.add(params, 'sunIntensity', 0, 5, 0.1).name('Độ sáng Mặt Trời').onChange((value) => {
-        sunLight.intensity = value;
+    waterFolder.addColor(params, 'waterColor').name('Màu nước biển').onChange((value) => {
+        if (water) water.material.uniforms['waterColor'].value.set(value);
     });
 
-    // Bộ chọn màu nắng (chỉnh được cả bầu trời xế chiều hay trưa nắng gắt)
-    gui.addColor(params, 'sunColor').name('Màu ánh nắng').onChange((value) => {
-        sunLight.color.set(value);
-        sunMat.color.set(value);
-    });
-
-    // Bộ chọn màu nước biển
-    gui.addColor(params, 'waterColor').name('Màu nước biển').onChange((value) => {
-        water.material.uniforms['waterColor'].value.set(value);
-    });
+    // ==========================================
+    // 2. NHÓM THỜI GIAN
+    // ==========================================
+    const timeFolder = gui.addFolder('Scene');
+    
+    // Tạo nút bấm chuyển cảnh
+    timeFolder.add(params, 'toggleDayNight').name('Chuyển Ngày / Đêm');
 }
