@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // IMPORT CÁC MODULE ĐÃ ĐƯỢC TÁCH RA
 import { createLighting } from './js/lighting.js';
@@ -11,7 +12,7 @@ import { createVFX, updateVFX } from './js/vfx.js';
 import { initGUI } from './js/gui.js';
 
 // ==========================================
-// 1. KHỞI TẠO KHÔNG GIAN (Giữ trực tiếp trong main.js theo yêu cầu)
+// 1. KHỞI TẠO KHÔNG GIAN
 // ==========================================
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0xfffaf0, 0.0025); 
@@ -33,6 +34,9 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.maxPolarAngle = Math.PI * 0.47; 
 
+// KHỞI TẠO LOADER DÙNG CHUNG
+const loader = new GLTFLoader();
+
 // ==========================================
 // 2. KHỞI TẠO CÁC PHÂN ĐOẠN ĐƯỢC TÁCH MODULE
 // ==========================================
@@ -40,9 +44,12 @@ const { sunLight, sunMesh, sunMat } = createLighting(scene);
 const water = createWater(scene, sunLight);
 const { island, pos } = createTerrain(scene);
 spawnEcosystem(scene, pos);
-const { woodTexture, boatGroup, hull } = createProps(scene);
+
+// NHẬN LẠI HÀM UPDATE CỦA THUYỀN TỪ PROPS
+const { woodTexture, updateBoat } = createProps(scene, loader);
+
 const { cloudGroup, particles, lavaParticles, lavaSpeeds, lavaCount } = createVFX(scene);
-initGUI(water, sunLight, sunMat, hull);
+initGUI(water, sunLight, sunMat, null);
 
 // ==========================================
 // 3. RENDER LOOP & RESIZE EVENT
@@ -53,12 +60,15 @@ function animate() {
     requestAnimationFrame(animate);
     const time = clock.getElapsedTime();
     
-    water.material.uniforms['time'].value += 1.0 / 60.0;
+    if (water && water.material.uniforms['time']) {
+        water.material.uniforms['time'].value += 1.0 / 60.0;
+    }
     
-    // Thuyền dập dềnh bám theo mực nước hiện tại được set trong GUI
-    boatGroup.position.y = Math.sin(time * 2) * 0.2; 
-    boatGroup.rotation.z = Math.cos(time * 1.5) * 0.05;
-
+    // GỌI HOẠT ẢNH DẬP DỀNH CỦA THUYỀN ĐÃ ĐƯỢC ĐÓNG GÓI TRONG PROPS.JS
+    if (typeof updateBoat === 'function') {
+        updateBoat(time);
+    }
+    
     // Cập nhật mây bay, đom đóm & tàn lửa
     updateVFX(cloudGroup, particles, lavaParticles, lavaSpeeds, lavaCount, time);
 

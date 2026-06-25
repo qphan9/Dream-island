@@ -1,17 +1,15 @@
 import * as THREE from 'three';
 
-export function createProps(scene) {
+export function createProps(scene, loader) {
     // Hàm vẽ vân gỗ cho thuyền và cầu cảng
     function createWoodTexture() {
         const canvas = document.createElement('canvas');
         canvas.width = 256; canvas.height = 256;
         const context = canvas.getContext('2d');
         
-        // Màu nền gỗ
         context.fillStyle = '#6e4a2d';
         context.fillRect(0, 0, 256, 256);
         
-        // Vẽ các sọc vân gỗ đậm màu
         context.fillStyle = '#4a2f1a';
         for (let i = 0; i < 50; i++) {
             context.globalAlpha = Math.random() * 0.6 + 0.2;
@@ -25,37 +23,81 @@ export function createProps(scene) {
     }
     const woodTexture = createWoodTexture();
 
+    // ==========================================================
+    // KHỞI TẠO VÀ ĐỊNH VỊ BẾN (DOCK) NẰM Ở RÌA TRÁI ĐẢO
+    // ==========================================================
     const dockGroup = new THREE.Group();
-    const dockGeo = new THREE.BoxGeometry(4, 0.5, 16);
+    const dockLength = 32; 
+    const dockGeo = new THREE.BoxGeometry(4, 0.5, dockLength);
     const dockPlankMat = new THREE.MeshStandardMaterial({ map: woodTexture, roughness: 0.9 });
     const dockMesh = new THREE.Mesh(dockGeo, dockPlankMat);
-    dockMesh.position.set(0, 6, 8);
+    
+    dockMesh.position.set(0, 5.7, dockLength / 2); // Cao hơn mặt nước y=5 một chút
     dockMesh.castShadow = true; dockMesh.receiveShadow = true;
     dockGroup.add(dockMesh);
 
-    const postGeo = new THREE.CylinderGeometry(0.3, 0.3, 4);
+    // Thêm chân cột đỡ cắm sâu xuống biển
+    const postGeo = new THREE.CylinderGeometry(0.3, 0.3, 8); 
     const postMat = new THREE.MeshStandardMaterial({ map: woodTexture });
-    const positions = [[-1.5, 8], [1.5, 8], [-1.5, 14], [1.5, 14], [-1.5, 2], [1.5, 2]];
+    const positions = [
+        [-1.5, 2], [1.5, 2],
+        [-1.5, dockLength * 0.35], [1.5, dockLength * 0.35],
+        [-1.5, dockLength * 0.70], [1.5, dockLength * 0.70],
+        [-1.5, dockLength - 2], [1.5, dockLength - 2]
+    ];
+    
     positions.forEach(p => {
         const post = new THREE.Mesh(postGeo, postMat);
-        post.position.set(p[0], 4.5, p[1]);
+        post.position.set(p[0], 2, p[1]);
         post.castShadow = true;
         dockGroup.add(post);
     });
-    dockGroup.position.set(20, 0, 45);
-    dockGroup.rotation.y = -Math.PI / 6;
+    
+    // Tọa độ bến nằm ở rìa bãi biển bên trái island
+    dockGroup.position.set(-45, -0.5, 35); 
+    dockGroup.rotation.y = -Math.PI / 1.8; // Hướng đâm thẳng ra biển biên rộng
     scene.add(dockGroup);
 
-    const boatGroup = new THREE.Group();
-    const hullGeo = new THREE.BoxGeometry(3, 1.5, 8);
-    const hullMat = new THREE.MeshStandardMaterial({ map: woodTexture, roughness: 0.8 });
-    const hull = new THREE.Mesh(hullGeo, hullMat);
-    hull.position.y = 5; 
-    hull.castShadow = true;
-    boatGroup.add(hull);
-    boatGroup.position.set(35, 0, 50);
-    boatGroup.rotation.y = Math.PI / 4;
-    scene.add(boatGroup);
+    // ==========================================================
+    // TẢI FILE BOAT.GLB VÀ QUẢN LÝ HOẠT ẢNH NỘI BỘ
+    // ==========================================================
+    const boatContainer = new THREE.Group();
+    scene.add(boatContainer);
 
-    return { woodTexture, boatGroup, hull };
+    let boatModel = null;
+
+    loader.load('glb/boat.glb', (gltf) => {
+        boatModel = gltf.scene;
+        boatModel.scale.set(0.01, 0.01, 0.01);
+        
+        // Đặt thuyền ra vùng nước trống bên trái, ngay cạnh cầu cảng mới (X = -55, Z = 55)
+        // Ban đầu ghim nhẹ ở cao độ mặt nước y = 5.15
+        boatModel.position.set(-55, 5.15, 55); 
+        boatModel.rotation.y = -Math.PI / 1.2; 
+        
+        boatModel.castShadow = true;
+        boatModel.traverse((child) => {
+            if (child.isMesh) child.castShadow = true;
+        });
+
+        boatContainer.add(boatModel);
+    }, undefined, (error) => {
+        console.error('Lỗi khi load mô hình boat.glb tại props.js:', error);
+    });
+
+    // Hàm cập nhật trạng thái hoạt ảnh dập dềnh của thuyền theo thời gian
+    // Hàm này sẽ được main.js liên tục gọi trong vòng lặp animate
+    function updateBoat(time) {
+        if (boatModel) {
+            // Nổi dập dềnh toán học mượt mà quanh trục mặt nước y = 5 ngoài biển trống
+            boatModel.position.y = 5.15 + Math.sin(time * 1.5) * 0.12;
+            
+            // Các hiệu ứng nghiêng lắc nhẹ mượt mà theo sóng nước
+            boatModel.rotation.z = Math.sin(time * 2.0) * 0.04;
+            boatModel.rotation.x = Math.cos(time * 1.5) * 0.02;
+        }
+    }
+
+    // Trả về woodTexture và hàm updateBoat để main.js sử dụng
+    return { woodTexture, updateBoat };
 }
