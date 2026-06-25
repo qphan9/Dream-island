@@ -130,13 +130,13 @@ float worleyFbm(vec3 p, float freq) {
 export const defines = /* glsl */ `
 #define PI 3.14159265359
 #define N_VOL_STEPS 32
-#define STEP_SIZE 0.02
-#define MAX_STEPS 128
+#define STEP_SIZE 0.04
+#define MAX_STEPS 64
 #define MAX_DIST 100.0
 #define SURF_DIST 0.001
-#define N_LIGHT_STEPS 4
-#define LIGHT_STEP_SIZE 0.02
-#define NB_STEPS 100
+#define N_LIGHT_STEPS 2
+#define LIGHT_STEP_SIZE 0.04
+#define NB_STEPS 50
 
 // Params
 const float densityScale = 1.0;
@@ -262,7 +262,7 @@ float dualLobeHenyeyGreenstein(float g, float cosTheta, float K) {
 }
 
 float multipleScattering(float depth, float g, float cosTheta, float K) {
-  int octaves = 4;
+  int octaves = 2;
   float attenuation = 0.5;
   float contribution = 0.5;
   float phaseAttenuation = 0.1;

@@ -271,20 +271,19 @@ export class CloudMaterial extends THREE.ShaderMaterial {
           vec4 textureEnvelope = texture(uTextureEnvelope, p.xz);
           float minHeight = textureEnvelope.r;
           float maxHeight = textureEnvelope.g;
-          float cloudType = textureEnvelope.b;
-          float density = textureEnvelope.a;
 
           float clampedHeight = p.y * step(minHeight, p.y) * step(p.y, maxHeight);
           float height = remapVal(clampedHeight, minHeight, maxHeight, 0.0, 1.0);
           height = abs(height - 0.5) * 2.0;
           height = 1.0 - height;
 
-          float edgeGradient = length(p.xz - 0.5) * 2.0;
-          edgeGradient = saturate(edgeGradient);
-          edgeGradient = 1.0 - edgeGradient;
-          edgeGradient = pow(edgeGradient, 1.0);
+          // Dùng khoảng cách hình tròn (length) thay vì hình vuông (max) để không còn góc cạnh
+          float dist = length(p.xz - 0.5); 
+          
+          // Mờ dần rất êm từ bán kính 0.2 đến 0.5 (tức là mờ đi 60% diện tích bên ngoài rìa)
+          float edgeFade = smoothstep(0.5, 0.2, dist); 
 
-          float dimensionalProfile = height * edgeGradient;
+          float dimensionalProfile = height * edgeFade;
         
           heightBlend = height;
 
@@ -297,26 +296,30 @@ export class CloudMaterial extends THREE.ShaderMaterial {
         }
 
         float getCloudDensity(vec3 p) {
-          float scale = 2.0;
+          // Hạ scale xuống mức vừa phải (khoảng 3.0) để tạo ra các khối nhiễu lớn hơn (ít đám mây hơn)
+          float scale = 2.0; 
           vec3 coord = p * scale;
-          coord.x += uTime * 0.1;
+          coord.x += uTime * 0.02; // Trôi chậm hơn
           coord = mod(coord, 1.0);
 
           vec4 textureA = texture(uTextureA, coord);
-
           float perlinWorley = textureA.r;
-          float worleyFbm4 = textureA.g;
-          float worleyFbm8 = textureA.b;
-          float worleyFbm16 = textureA.a;
+          float worleyFbm4 = textureA.g; // Lấy thêm nhiễu chi tiết
           
           float heightBlend = 0.0;
           float dimensionalProfile = getDimensionalProfile(p, heightBlend);
 
-          float noiseComposite = mix(pow(1.0 - perlinWorley, 1.0), perlinWorley, heightBlend);
+          // Coverage 0.55 kết hợp scale 3.0 sẽ gọt đi phần lớn không gian, chỉ chừa lại khoảng 5-8 chóp mây to nhỏ khác nhau
+          float coverage = 0.55;
+          
+          float baseCloud = saturate(perlinWorley - coverage);
 
-          float cloudDensity = saturate(perlinWorley - (1.0 - dimensionalProfile));
+          // Thêm một chút nhiễu (worleyFbm) vào baseCloud để rìa đám mây trông bồng bềnh hơn
+          baseCloud = saturate(baseCloud - (worleyFbm4 * 0.2));
 
-          return cloudDensity;
+          float cloudDensity = saturate(baseCloud - (1.0 - dimensionalProfile));
+
+          return cloudDensity * 2.5;
         }
 
         ${rayMarch}
