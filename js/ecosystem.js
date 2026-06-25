@@ -92,41 +92,80 @@ export function spawnEcosystem(scene, pos) {
         }
     }
     scene.add(instJTrunks); scene.add(instJLeaves); scene.add(instBushes);
-
+    // ==========================================
+    // KHỞI TẠO CÂY DỪA (4 MẪU TỪ THƯ MỤC GLB)
+    // ==========================================
+    // ==========================================
+    // KHỞI TẠO CÂY DỪA (SỬA LỖI KÍCH THƯỚC & SỐ LƯỢNG)
+    // ==========================================
     const loader = new GLTFLoader();
-    loader.load('coconut_tree_low_poly.glb', function (gltf) {
-        const treeModel = gltf.scene;
-        treeModel.traverse((child) => {
-            if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
-        });
+    
+    // 1. Khai báo 4 file cây
+    const treeFiles = [
+        './glb/Palm_tree_1.glb', 
+        './glb/Palm_tree_2.glb', 
+        './glb/Palm_tree_3.glb', 
+        './glb/Palm_tree_4.glb'
+    ];
 
-        const baseScale = 0.05; 
-        const totalCoconuts = 200; 
-        let cocoCount = 0;
-        
-        for (let i = 0; i < pos.count && cocoCount < totalCoconuts; i += 5) {
-            const x = pos.getX(i);
-            const y = pos.getY(i);
-            const z = pos.getZ(i); 
-            const distance = Math.sqrt(x*x + y*y);
-            const angle = Math.atan2(y, x);
+    // 2. Mảng tùy chỉnh kích thước (Tương ứng với 4 cây ở trên)
+    // Cây nào nhỏ thì bạn tăng số lên (ví dụ 0.08), cây nào to thì giảm xuống (ví dụ 0.03)
+    const baseScales = [0.05, 2.5, 2.5, 1]; 
 
-            if (z > 5.2 && z < 9 && distance > 14) { 
-                let prob = 0.02; 
-                if (angle > 0 && angle < 2.5) prob *= 15.0; 
+    // Tải tất cả các file cùng một lúc
+    Promise.all(treeFiles.map(file => loader.loadAsync(file)))
+        .then((gltfResults) => {
+            
+            const palmModels = gltfResults.map(gltf => {
+                const model = gltf.scene;
+                model.traverse((child) => {
+                    if (child.isMesh) { 
+                        child.castShadow = true; 
+                        child.receiveShadow = true; 
+                    }
+                });
+                return model;
+            });
 
-                if (Math.random() < prob) {
-                    const newTree = treeModel.clone();
-                    newTree.position.set(x, z, -y); 
-                    newTree.rotation.y = Math.random() * Math.PI * 2;
-                    const s = baseScale + Math.random() * 0.02; 
-                    newTree.scale.set(s, s, s);
-                    scene.add(newTree);
-                    cocoCount++;
+            // 3. GIẢM SỐ LƯỢNG CÂY (Từ 200 xuống 80 cây)
+            const totalCoconuts = 80; 
+            let cocoCount = 0;
+            
+            for (let i = 0; i < pos.count && cocoCount < totalCoconuts; i += 5) {
+                const x = pos.getX(i);
+                const y = pos.getY(i);
+                const z = pos.getZ(i); 
+                const distance = Math.sqrt(x*x + y*y);
+                const angle = Math.atan2(y, x);
+
+                if (z > 5.2 && z < 9 && distance > 14) { 
+                    // 4. Giảm xác suất mọc để cây tản mạn, thưa thớt tự nhiên hơn
+                    let prob = 0.005; 
+                    if (angle > 0 && angle < 2.5) prob *= 10.0; 
+
+                    if (Math.random() < prob) {
+                        const randomIndex = Math.floor(Math.random() * palmModels.length);
+                        const newTree = palmModels[randomIndex].clone();
+                        
+                        newTree.position.set(x, z, -y); 
+                        newTree.rotation.y = Math.random() * Math.PI * 2;
+                        
+                        // 5. ÁP DỤNG KÍCH THƯỚC ĐÃ CHUẨN HÓA
+                        const specificBaseScale = baseScales[randomIndex];
+                        
+                        // Vẫn giữ lại độ ngẫu nhiên nhẹ (to/nhỏ chênh nhau 20%) để tự nhiên
+                        const s = specificBaseScale + Math.random() * (specificBaseScale * 0.2); 
+                        newTree.scale.set(s, s, s);
+                        
+                        scene.add(newTree);
+                        cocoCount++;
+                    }
                 }
             }
-        }
-    });
+        })
+        .catch((error) => {
+            console.error("Lỗi tải mô hình cây dừa:", error);
+        });
 
     const textureLoader = new THREE.TextureLoader();
 
