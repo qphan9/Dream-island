@@ -69,10 +69,7 @@ export function createProps(scene, loader) {
     loader.load('glb/boat.glb', (gltf) => {
         boatModel = gltf.scene;
         boatModel.scale.set(0.01, 0.01, 0.01);
-        
-        // Đặt thuyền ra vùng nước trống bên trái, ngay cạnh cầu cảng mới (X = -55, Z = 55)
-        // Ban đầu ghim nhẹ ở cao độ mặt nước y = 5.15
-        boatModel.position.set(-55, 5.15, 55); 
+        boatModel.position.set(60, 5.15, -100); 
         boatModel.rotation.y = -Math.PI / 1.2; 
         
         boatModel.castShadow = true;
