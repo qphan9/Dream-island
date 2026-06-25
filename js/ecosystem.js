@@ -1,14 +1,42 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
 export function spawnEcosystem(scene, pos) {
     function createJungleTree() {
+        // A. THÂN CÂY
         const trunkGeo = new THREE.CylinderGeometry(0.2, 0.4, 4, 5);
         trunkGeo.translate(0, 2, 0);
-        const leavesGeo = new THREE.DodecahedronGeometry(2.8, 0);
-        leavesGeo.translate(0, 4.5, 0);
+        
+        // B. TÁN LÁ PHỨC HỢP
+        const leafGeometries = [];
+        
+        const mainLeaves = new THREE.DodecahedronGeometry(2.0, 0);
+        mainLeaves.translate(0, 4.8, 0); 
+        leafGeometries.push(mainLeaves);
+        
+        const numClusters = 4;
+        for (let i = 0; i < numClusters; i++) {
+            const size = 1.0 + Math.random() * 0.8; 
+            const subLeaves = new THREE.DodecahedronGeometry(size, 0);
+            
+            const angle = (i / numClusters) * Math.PI * 2 + Math.random() * 0.5;
+            const radius = 1.5 + Math.random() * 0.4;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+            const y = 3.5 + Math.random() * 1.5; 
+            subLeaves.rotateX(Math.random() * Math.PI);
+            subLeaves.rotateY(Math.random() * Math.PI);
+            subLeaves.translate(x, y, z);
+            
+            leafGeometries.push(subLeaves);
+        }
+        
+        const leavesGeo = BufferGeometryUtils.mergeGeometries(leafGeometries);
+        
         return { trunkGeo, leavesGeo };
     }
+    
     const bushGeo = new THREE.DodecahedronGeometry(1.4, 0);
     bushGeo.translate(0, 0.7, 0);
 
@@ -27,6 +55,7 @@ export function spawnEcosystem(scene, pos) {
     instJTrunks.castShadow = instJTrunks.receiveShadow = true;
     instJLeaves.castShadow = instJLeaves.receiveShadow = true;
     instBushes.castShadow = instBushes.receiveShadow = true;
+
 
     const dummy = new THREE.Object3D();
     let jTreeCount = 0; let bushCount = 0;
@@ -99,12 +128,36 @@ export function spawnEcosystem(scene, pos) {
         }
     });
 
+    const textureLoader = new THREE.TextureLoader();
+
+    const rockColorMap = textureLoader.load('./textures/rock_albedo.jpg');
+    const rockNormalMap = textureLoader.load('./textures/rock_normal.jpg');
+    const rockRoughnessMap = textureLoader.load('./textures/rock_roughness.jpg');
+
+    rockColorMap.wrapS = rockColorMap.wrapT = THREE.RepeatWrapping;
+    rockNormalMap.wrapS = rockNormalMap.wrapT = THREE.RepeatWrapping;
+    rockRoughnessMap.wrapS = rockRoughnessMap.wrapT = THREE.RepeatWrapping;
+    
+    rockColorMap.repeat.set(2, 2);
+    rockNormalMap.repeat.set(2, 2);
+    rockRoughnessMap.repeat.set(2, 2);
+
     const rockGeo = new THREE.DodecahedronGeometry(1.2, 1);
-    const rockMat = new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.9, flatShading: true });
+    
+    const rockMat = new THREE.MeshStandardMaterial({ 
+        map: rockColorMap,
+        normalMap: rockNormalMap,
+        roughnessMap: rockRoughnessMap,
+        roughness: 0.9, 
+    });
+
     const instRocks = new THREE.InstancedMesh(rockGeo, rockMat, 400); 
-    instRocks.castShadow = true; instRocks.receiveShadow = true;
+    instRocks.castShadow = true; 
+    instRocks.receiveShadow = true;
 
     let rockCount = 0;
+    
+
     for (let i = 0; i < pos.count && rockCount < 400; i += 2) {
         const x = pos.getX(i);
         const y = pos.getY(i);
@@ -116,6 +169,8 @@ export function spawnEcosystem(scene, pos) {
                 dummy.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
                 const s = 0.5 + Math.random() * 1.5;
                 dummy.scale.set(s * 1.5, s, s * 1.2);
+                
+                // Cập nhật ma trận và gán cho đá
                 dummy.updateMatrix();
                 instRocks.setMatrixAt(rockCount, dummy.matrix);
                 rockCount++;
