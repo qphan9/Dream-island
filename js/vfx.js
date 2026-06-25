@@ -2,20 +2,8 @@ import * as THREE from 'three';
 
 export function createVFX(scene) {
     const cloudGroup = new THREE.Group();
-    const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, flatShading: true, transparent: true, opacity: 0.9 });
-    for (let i = 0; i < 8; i++) { 
-        const singleCloud = new THREE.Group();
-        const numPuffs = 4 + Math.floor(Math.random() * 3);
-        for (let j = 0; j < numPuffs; j++) {
-            const puffGeo = new THREE.SphereGeometry(2.5 + Math.random() * 4, 8, 8);
-            const puff = new THREE.Mesh(puffGeo, cloudMat);
-            puff.position.set(j * 3, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2);
-            singleCloud.add(puff);
-        }
-        singleCloud.position.set((Math.random() - 0.5) * 190, 45 + Math.random() * 15, (Math.random() - 0.5) * 190);
-        cloudGroup.add(singleCloud);
-    }
-    scene.add(cloudGroup);
+    // Vô hiệu hoá mây low-poly cũ để nhường chỗ cho Volumetric Clouds
+    // scene.add(cloudGroup);
 
     const particleGeo = new THREE.BufferGeometry();
     const particleCount = 180;

@@ -100,7 +100,6 @@ export function spawnEcosystem(scene, pos) {
     // ==========================================
     const loader = new GLTFLoader();
     
-    // 1. Khai báo 4 file cây
     const treeFiles = [
         './glb/Palm_tree_1.glb', 
         './glb/Palm_tree_2.glb', 
@@ -108,11 +107,8 @@ export function spawnEcosystem(scene, pos) {
         './glb/Palm_tree_4.glb'
     ];
 
-    // 2. Mảng tùy chỉnh kích thước (Tương ứng với 4 cây ở trên)
-    // Cây nào nhỏ thì bạn tăng số lên (ví dụ 0.08), cây nào to thì giảm xuống (ví dụ 0.03)
     const baseScales = [0.05, 2.5, 2.5, 1]; 
 
-    // Tải tất cả các file cùng một lúc
     Promise.all(treeFiles.map(file => loader.loadAsync(file)))
         .then((gltfResults) => {
             
@@ -127,7 +123,6 @@ export function spawnEcosystem(scene, pos) {
                 return model;
             });
 
-            // 3. GIẢM SỐ LƯỢNG CÂY (Từ 200 xuống 80 cây)
             const totalCoconuts = 80; 
             let cocoCount = 0;
             
@@ -139,7 +134,6 @@ export function spawnEcosystem(scene, pos) {
                 const angle = Math.atan2(y, x);
 
                 if (z > 5.2 && z < 9 && distance > 14) { 
-                    // 4. Giảm xác suất mọc để cây tản mạn, thưa thớt tự nhiên hơn
                     let prob = 0.005; 
                     if (angle > 0 && angle < 2.5) prob *= 10.0; 
 
@@ -150,10 +144,8 @@ export function spawnEcosystem(scene, pos) {
                         newTree.position.set(x, z, -y); 
                         newTree.rotation.y = Math.random() * Math.PI * 2;
                         
-                        // 5. ÁP DỤNG KÍCH THƯỚC ĐÃ CHUẨN HÓA
                         const specificBaseScale = baseScales[randomIndex];
                         
-                        // Vẫn giữ lại độ ngẫu nhiên nhẹ (to/nhỏ chênh nhau 20%) để tự nhiên
                         const s = specificBaseScale + Math.random() * (specificBaseScale * 0.2); 
                         newTree.scale.set(s, s, s);
                         
@@ -208,8 +200,7 @@ export function spawnEcosystem(scene, pos) {
                 dummy.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
                 const s = 0.5 + Math.random() * 1.5;
                 dummy.scale.set(s * 1.5, s, s * 1.2);
-                
-                // Cập nhật ma trận và gán cho đá
+
                 dummy.updateMatrix();
                 instRocks.setMatrixAt(rockCount, dummy.matrix);
                 rockCount++;
