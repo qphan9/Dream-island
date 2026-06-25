@@ -46,10 +46,10 @@ const { woodTexture, updateBoat } = createProps(scene, loader);
 const { cloudGroup, particles, lavaParticles, lavaSpeeds, lavaCount } = createVFX(scene);
 initGUI(water, sunLight, sunMat, null);
 
-const cloudBoxGeo = new THREE.BoxGeometry(100, 50, 60);
+const cloudBoxGeo = new THREE.BoxGeometry(300, 200, 300);
 const cloudBoxMat = new THREE.MeshBasicMaterial({ side: THREE.BackSide });
 const cloudBoxMesh = new THREE.Mesh(cloudBoxGeo, cloudBoxMat);
-cloudBoxMesh.position.set(0, 80, 0); // Đặt mây ở độ cao 100
+cloudBoxMesh.position.set(0, 100, 0); // Đặt mây ở độ cao 100
 scene.add(cloudBoxMesh);
 
 const size = { width: window.innerWidth, height: window.innerHeight };
