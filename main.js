@@ -56,9 +56,13 @@ const { woodTexture, updateBoat } = createProps(scene, loader);
 // ==========================================
 const { cloudGroup, particles, lavaParticles, lavaSpeeds, lavaCount } = createVFX(scene);
 
-// Thiết lập vùng chứa mây tích thể
+// Thiết lập vùng chứa mây tích thể (Thêm transparent & opacity để không che khuất skybox)
 const cloudBoxGeo = new THREE.BoxGeometry(300, 200, 300);
-const cloudBoxMat = new THREE.MeshBasicMaterial({ side: THREE.BackSide });
+const cloudBoxMat = new THREE.MeshBasicMaterial({ 
+    side: THREE.BackSide,
+    transparent: true,
+    opacity: 0 
+});
 const cloudBoxMesh = new THREE.Mesh(cloudBoxGeo, cloudBoxMat);
 cloudBoxMesh.position.set(0, 100, 0); // Đặt mây ở độ cao 100
 scene.add(cloudBoxMesh);
@@ -76,7 +80,6 @@ initGUI(water, toggleTime);
 // ==========================================
 function animate() {
     requestAnimationFrame(animate);
-    
     const time = clock.getElapsedTime();
     const delta = clock.getDelta();
 
@@ -89,11 +92,6 @@ function animate() {
     if (typeof updateBoat === 'function') {
         updateBoat(time);
     }
-
-    // GỌI HOẠT ẢNH QUẪY ĐUÔI CỦA CÁ (Sử dụng delta time)
-    if (typeof updateFishes === 'function') {
-        updateFishes(delta, time);
-    }
     
     if (typeof updateFishes === 'function') {
         updateFishes(delta, time);
@@ -103,11 +101,14 @@ function animate() {
     updateLighting();
     updateVFX(cloudGroup, particles, lavaParticles, lavaSpeeds, lavaCount, time);
 
-    // Xử lý Render pass (Nền tảng mây tích thể)
-    renderer.autoClear = false;
-    renderer.clear();
+    // ---- ĐÃ SỬA: SẮP XẾP LẠI THỨ TỰ RENDER PASS ĐỂ HIỂN THỊ BẦU TRỜI ----
+    renderer.autoClear = true; 
     
+    // Pass 1: Render toàn bộ Scene chính (bao gồm Bầu trời, Đảo, Biển từ các module)
     renderer.render(scene, camera);
+    
+    // Pass 2: Render đè đám mây tích thể lên trên, giữ lại depth buffer để mây khuất sau núi
+    renderer.autoClear = false;
     cloudsRenderer.render(1.0 / 60.0, cloudBoxMesh, camera, scene);
 
     controls.update();
