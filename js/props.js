@@ -24,7 +24,7 @@ export function createProps(scene, loader) {
     const woodTexture = createWoodTexture();
 
     // ==========================================================
-    // KHỞI TẠO VÀ ĐỊNH VỊ BẾN (DOCK) NẰM Ở RÌA TRÁI ĐẢO
+    // Khởi tạo định vị bến (dock)
     // ==========================================================
     const dockGroup = new THREE.Group();
     const dockLength = 32; 
@@ -55,49 +55,87 @@ export function createProps(scene, loader) {
     
     // Tọa độ bến nằm ở rìa bãi biển bên trái island
     dockGroup.position.set(-45, -0.5, 35); 
-    dockGroup.rotation.y = -Math.PI / 1.8; // Hướng đâm thẳng ra biển biên rộng
+    dockGroup.rotation.y = -Math.PI / 1.18; 
     scene.add(dockGroup);
 
     // ==========================================================
-    // TẢI FILE BOAT.GLB VÀ QUẢN LÝ HOẠT ẢNH NỘI BỘ
+    // TẢI CÁC FILE BOAT.GLB VÀ QUẢN LÝ HOẠT ẢNH NỘI BỘ
     // ==========================================================
     const boatContainer = new THREE.Group();
     scene.add(boatContainer);
 
-    let boatModel = null;
+    // Mảng lưu trữ tất cả các thuyền sau khi tải thành công để cập nhật hoạt ảnh
+    const activeBoats = [];
 
-    loader.load('glb/boat.glb', (gltf) => {
-        boatModel = gltf.scene;
-        boatModel.scale.set(0.01, 0.01, 0.01);
-        
-        // Đặt thuyền ra vùng nước trống bên trái, ngay cạnh cầu cảng mới (X = -55, Z = 55)
-        // Ban đầu ghim nhẹ ở cao độ mặt nước y = 5.15
-        boatModel.position.set(-55, 5.15, 55); 
-        boatModel.rotation.y = -Math.PI / 1.2; 
-        
-        boatModel.castShadow = true;
-        boatModel.traverse((child) => {
-            if (child.isMesh) child.castShadow = true;
+    // CẤU HÌNH CHO TỪNG THUYỀN (Bạn chỉnh sửa vị trí và scale độc lập ở đây)
+    const boatConfigs = [
+        {
+            path: 'glb/boat1.glb',
+            pos: [50, 5.15, -60],        //  trí [X, Y, Z] gần cầu cảng
+            rotY: -Math.PI / 1.2,        // Góc xoay quanh trục Y
+            scale: [0.01, 0.01, 0.01],   // Tỷ lệ kích thước [X, Y, Z] của thuyền
+            waveOffset: 0                // Độ lệch nhịp sóng dập dềnh
+        },
+        {
+            path: 'glb/boat2.glb',
+            pos: [-300, 5.15, -100],        
+            rotY: Math.PI / 4,
+            scale: [1.5, 1.5, 1.5],
+            waveOffset: Math.PI / 3 
+        },
+        {
+            path: 'glb/boat3.glb',
+            pos: [-250, 15, 100],     
+            rotY: -Math.PI / 6,
+            scale: [50, 50, 50], 
+            waveOffset: Math.PI / 1.5
+        }
+    ];
+
+    // Vòng lặp tự động dựa trên mảng cấu hình
+    boatConfigs.forEach(config => {
+        loader.load(config.path, (gltf) => {
+            const boatModel = gltf.scene;
+            
+            // Thiết lập scale độc lập từ thông số cấu hình riêng từng thuyền
+            boatModel.scale.set(config.scale[0], config.scale[1], config.scale[2]);
+            
+            // Đặt vị trí cố định trên mặt nước (không bị trôi tự do)
+            boatModel.position.set(config.pos[0], config.pos[1], config.pos[2]); 
+            boatModel.rotation.y = config.rotY; 
+            
+            boatModel.castShadow = true;
+            boatModel.traverse((child) => {
+                if (child.isMesh) child.castShadow = true;
+            });
+
+            boatContainer.add(boatModel);
+            
+            // Đẩy vào mảng cập nhật để xử lý dập dềnh lệch pha
+            activeBoats.push({
+                model: boatModel,
+                waveOffset: config.waveOffset,
+                baseY: config.pos[1]
+            });
+        }, undefined, (error) => {
+            console.error(`Lỗi khi load mô hình ${config.path} tại props.js:`, error);
         });
-
-        boatContainer.add(boatModel);
-    }, undefined, (error) => {
-        console.error('Lỗi khi load mô hình boat.glb tại props.js:', error);
     });
 
-    // Hàm cập nhật trạng thái hoạt ảnh dập dềnh của thuyền theo thời gian
-    // Hàm này sẽ được main.js liên tục gọi trong vòng lặp animate
+    // Hàm cập nhật trạng thái hoạt ảnh dập dềnh tại chỗ cho toàn bộ thuyền
     function updateBoat(time) {
-        if (boatModel) {
-            // Nổi dập dềnh toán học mượt mà quanh trục mặt nước y = 5 ngoài biển trống
-            boatModel.position.y = 5.15 + Math.sin(time * 1.5) * 0.12;
-            
-            // Các hiệu ứng nghiêng lắc nhẹ mượt mà theo sóng nước
-            boatModel.rotation.z = Math.sin(time * 2.0) * 0.04;
-            boatModel.rotation.x = Math.cos(time * 1.5) * 0.02;
-        }
+        activeBoats.forEach(boat => {
+            if (boat.model) {
+                // Nhấp nhô mượt mà tại chỗ dựa trên gốc tọa độ baseY và waveOffset
+                boat.model.position.y = boat.baseY + Math.sin(time * 1.5 + boat.waveOffset) * 0.12;
+                
+                // Các hiệu ứng nghiêng lắc nhẹ theo nhịp sóng riêng
+                boat.model.rotation.z = Math.sin(time * 2.0 + boat.waveOffset) * 0.04;
+                boat.model.rotation.x = Math.cos(time * 1.5 + boat.waveOffset) * 0.02;
+            }
+        });
     }
 
-    // Trả về woodTexture và hàm updateBoat để main.js sử dụng
+    // Trả về woodTexture và hàm updateBoat để tương thích hoàn toàn với main.js cũ
     return { woodTexture, updateBoat };
 }

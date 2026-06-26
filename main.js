@@ -76,6 +76,7 @@ initGUI(water, toggleTime);
 // ==========================================
 function animate() {
     requestAnimationFrame(animate);
+    
     const time = clock.getElapsedTime();
     const delta = clock.getDelta();
 
@@ -87,6 +88,11 @@ function animate() {
     // Cập nhật chuyển động của thuyền & cá
     if (typeof updateBoat === 'function') {
         updateBoat(time);
+    }
+
+    // GỌI HOẠT ẢNH QUẪY ĐUÔI CỦA CÁ (Sử dụng delta time)
+    if (typeof updateFishes === 'function') {
+        updateFishes(delta, time);
     }
     
     if (typeof updateFishes === 'function') {
